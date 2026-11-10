@@ -321,4 +321,9 @@ void MechanizationRunner::reset(NavState initial_state) {
     has_previous_increment_ = false;
 }
 
+void MechanizationRunner::setState(NavState state) {
+    validateState(state);
+    state_ = std::move(state);
+}
+
 }  // namespace inertial_core

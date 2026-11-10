@@ -47,6 +47,7 @@ public:
     const EarthModelOptions& options() const { return options_; }
 
     void reset(NavState initial_state);
+    void setState(NavState state);
 
 private:
     NavState state_;
