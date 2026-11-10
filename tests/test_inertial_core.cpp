@@ -1,5 +1,6 @@
 #include "inertial_core/earth_model.hpp"
 #include "inertial_core/mechanization.hpp"
+#include "inertial_core/presets.hpp"
 
 #include <Eigen/Geometry>
 
@@ -47,6 +48,27 @@ int main() {
     const Eigen::Vector3d position(latitude, longitude, height);
     const Eigen::Vector3d zero_velocity = Eigen::Vector3d::Zero();
     const inertial_core::EarthModelOptions earth_options;
+    const inertial_core::RuntimeConfig no_earth_preset =
+        inertial_core::noEarthConfig();
+    const inertial_core::RuntimeConfig rotation_only_preset =
+        inertial_core::rotationOnlyConfig();
+    check(
+        !no_earth_preset.enable_earth_rotation &&
+            !no_earth_preset.enable_transport_rate &&
+            !no_earth_preset.enable_coriolis &&
+            rotation_only_preset.enable_earth_rotation &&
+            !rotation_only_preset.enable_transport_rate &&
+            rotation_only_preset.enable_coriolis,
+        "runtime presets expose consistent experiment modes");
+    check(
+        earth_options.enable_earth_rotation &&
+            earth_options.enable_transport_rate &&
+            earth_options.enable_coriolis &&
+            earth_options.enable_ellipsoid_radii &&
+            earth_options.enable_coning_sculling &&
+            earth_options.gravity_model ==
+                inertial_core::GravityModel::kNormalGravity,
+        "runtime configuration defaults match the shared schema");
 
     const Eigen::Vector2d radii =
         inertial_core::EarthModel::meridianPrimeVerticalRadii(
@@ -196,6 +218,40 @@ int main() {
         unequal_dt_thrown = true;
     }
     check(unequal_dt_thrown, "unequal adjacent dt is rejected");
+
+    inertial_core::EarthModelOptions coning_enabled = no_earth;
+    inertial_core::EarthModelOptions coning_disabled = no_earth;
+    coning_disabled.enable_coning_sculling = false;
+    inertial_core::ImuIncrement coning_previous;
+    coning_previous.dt_s = 0.005;
+    coning_previous.delta_angle_rad = Eigen::Vector3d(0.0, 0.1, 0.0);
+    inertial_core::ImuIncrement coning_current;
+    coning_current.dt_s = 0.005;
+    coning_current.delta_velocity_mps = Eigen::Vector3d(1.0, 0.0, 0.0);
+    const inertial_core::NavState coning_on = inertial_core::Mechanization::propagate(
+        moving, coning_previous, coning_current, coning_enabled);
+    const inertial_core::NavState coning_off = inertial_core::Mechanization::propagate(
+        moving, coning_previous, coning_current, coning_disabled);
+    check(
+        (coning_on.velocity_ned_mps - coning_off.velocity_ned_mps).norm() > 1e-6,
+        "coning/sculling switch changes the propagated increment");
+
+    inertial_core::EarthModelOptions widened_tolerance = no_earth;
+    widened_tolerance.equal_interval_tolerance_s = 0.002;
+    bool widened_tolerance_accepted = true;
+    try {
+        inertial_core::ImuIncrement previous;
+        previous.dt_s = 0.005;
+        inertial_core::ImuIncrement current;
+        current.dt_s = 0.006;
+        inertial_core::Mechanization::propagate(
+            moving, previous, current, widened_tolerance);
+    } catch (const std::invalid_argument&) {
+        widened_tolerance_accepted = false;
+    }
+    check(
+        widened_tolerance_accepted,
+        "equal-interval tolerance is configurable");
 
     if (g_failures == 0) {
         std::printf("inertial_core_tests: all checks passed\n");

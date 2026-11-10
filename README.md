@@ -40,6 +40,7 @@ IMU increment + previous navigation state
 `include/inertial_core/mechanization.hpp` 提供无状态单步函数和带上一采样缓存的
 `MechanizationRunner`。`include/inertial_core/earth_model.hpp` 提供独立的地球参数计算。
 相邻采样圆锥/划桨修正要求 `dt` 相等，默认容差为 `1e-9 s`。
+配置结构 `RuntimeConfig` 与 `preintegration_core` 使用相同字段名和默认值。
 
 ## Build
 
@@ -57,7 +58,7 @@ ctest --test-dir build --output-on-failure
 #include "inertial_core/mechanization.hpp"
 
 inertial_core::NavState initial;
-inertial_core::EarthModelOptions options;
+inertial_core::RuntimeConfig options;
 inertial_core::MechanizationRunner runner(initial, options);
 
 inertial_core::ImuIncrement imu;
@@ -80,6 +81,12 @@ const inertial_core::NavState next = runner.step(imu);
 | `enable_coriolis` | 在速度方程中计算地球哥氏项 `2*omega_ie x v` |
 | `enable_ellipsoid_radii` | 使用 WGS84 `RM/RN`；关闭后使用球半径 |
 | `gravity_model` | 常值重力或随纬度、高度变化的正常重力 |
+| `enable_coning_sculling` | 是否计算圆锥和划桨二阶修正 |
+| `equal_interval_tolerance_s` | 相邻 IMU 采样间隔允许误差 |
+
+常用实验模式可直接使用 `inertial_core/presets.hpp` 中的
+`noEarthConfig()`、`rotationOnlyConfig()`、`fullBasicConfig()` 和
+`constantGravityConfig()`。
 
 关闭 `enable_earth_rotation` 不会自动关闭重力。关闭全部旋转项仍保留重力，
 这是导航机械编排的 no-Earth 基线，不是自由落体。

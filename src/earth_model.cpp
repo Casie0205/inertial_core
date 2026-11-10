@@ -27,6 +27,11 @@ void validateOptions(const EarthModelOptions& options) {
         options.fallback_sphere_radius_m <= 0.0) {
         throw std::invalid_argument("earth geometry parameters are invalid");
     }
+    if (!std::isfinite(options.equal_interval_tolerance_s) ||
+        options.equal_interval_tolerance_s < 0.0) {
+        throw std::invalid_argument(
+            "equal-interval tolerance must be finite and nonnegative");
+    }
 }
 
 void validatePositionVelocity(

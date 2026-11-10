@@ -28,7 +28,10 @@
 
 `MechanizationRunner` 保存上一帧 IMU 增量，以计算相邻采样的圆锥和划桨交叉项。首次调用时
 交叉项为零。无状态调用接口可由调用方显式传入上一帧增量。双样本修正按等采样间隔推导，
-当前实现要求相邻 `dt` 差值不超过 `1e-9 s`。
+当前实现要求相邻 `dt` 差值不超过 `RuntimeConfig::equal_interval_tolerance_s`。
+`RuntimeConfig::enable_coning_sculling` 可关闭全部圆锥和划桨二阶修正。
+
+`RuntimeConfig` 与 `preintegration_core` 使用相同字段名和默认值。
 
 ## Mechanization sequence
 
@@ -62,6 +65,10 @@ RM, RN, omega_ie_ned, omega_en_ned, omega_in_ned, gravity
 | rotation-only | on | off | on | normal or constant |
 | full-basic | on | on | on | normal |
 
+对应字段依次为 `enable_earth_rotation`、`enable_transport_rate`、
+`enable_coriolis` 和 `gravity_model`。`enable_ellipsoid_radii` 独立控制
+WGS84 半径或球半径；`enable_coning_sculling` 独立控制二阶增量修正。
+
 ## Baseline definitions
 
 “no-Earth” 在本库中表示不计算地球自转、运输率和地球哥氏项。重力仍存在，否则系统处于
@@ -83,4 +90,5 @@ RM, RN, omega_ie_ned, omega_en_ned, omega_in_ned, gravity
 - 地球开启时静止理想 IMU 的状态保持；
 - no-Earth 自由落体和支撑静止；
 - 水平常速运动；
+- 圆锥/划桨开关和等间隔容差；
 - 后续增加纯北向、纯东向、转弯和纬度高差场景。

@@ -10,7 +10,6 @@ namespace inertial_core {
 namespace {
 
 constexpr double kPi = 3.141592653589793238462643383279502884;
-constexpr double kEqualIntervalToleranceS = 1e-9;
 
 Eigen::Matrix3d skew(const Eigen::Vector3d& vector) {
     Eigen::Matrix3d matrix;
@@ -132,7 +131,7 @@ NavState Mechanization::propagate(
     validateIncrement(previous_increment);
     validateIncrement(increment);
     if (std::abs(previous_increment.dt_s - increment.dt_s) >
-        kEqualIntervalToleranceS) {
+        options.equal_interval_tolerance_s) {
         throw std::invalid_argument(
             "adjacent-sample coning/sculling requires equal IMU intervals");
     }
@@ -151,12 +150,18 @@ NavState Mechanization::propagate(
         increment.delta_angle_rad;
     const Eigen::Vector3d d_v_body =
         increment.delta_velocity_mps;
-    const Eigen::Vector3d d_v_fb =
-        d_v_body +
-        0.5 * d_theta_body.cross(d_v_body) +
-        (1.0 / 12.0) *
-            (previous_increment.delta_angle_rad.cross(d_v_body) +
-             previous_increment.delta_velocity_mps.cross(d_theta_body));
+    Eigen::Vector3d d_v_fb = d_v_body;
+    Eigen::Vector3d d_theta_corrected = d_theta_body;
+    if (options.enable_coning_sculling) {
+        d_v_fb +=
+            0.5 * d_theta_body.cross(d_v_body) +
+            (1.0 / 12.0) *
+                (previous_increment.delta_angle_rad.cross(d_v_body) +
+                 previous_increment.delta_velocity_mps.cross(d_theta_body));
+        d_theta_corrected +=
+            (1.0 / 12.0) *
+            previous_increment.delta_angle_rad.cross(d_theta_body);
+    }
 
     const Eigen::Vector3d nav_rate_start =
         earth_start.omega_ie_ned_radps + earth_start.omega_en_ned_radps;
@@ -251,10 +256,7 @@ NavState Mechanization::propagate(
         -(earth_attitude.omega_ie_ned_radps +
           earth_attitude.omega_en_ned_radps) *
         increment.dt_s;
-    const Eigen::Vector3d q_bb_vector =
-        d_theta_body +
-        (1.0 / 12.0) *
-            previous_increment.delta_angle_rad.cross(d_theta_body);
+    const Eigen::Vector3d q_bb_vector = d_theta_corrected;
     const Eigen::Quaterniond q_nn = expMap(q_nn_vector);
     const Eigen::Quaterniond q_bb = expMap(q_bb_vector);
     current.q_bn =

@@ -2,30 +2,12 @@
 
 #include <Eigen/Core>
 
+#include "inertial_core/runtime_config.hpp"
 #include "inertial_core/types.hpp"
 
 namespace inertial_core {
 
-enum class GravityModel {
-    kConstant,
-    kNormalGravity,
-};
-
-// Options are deliberately independent so an experiment can change one
-// physical term at a time.
-struct EarthModelOptions {
-    bool enable_earth_rotation{true};
-    bool enable_transport_rate{true};
-    bool enable_coriolis{true};
-    bool enable_ellipsoid_radii{true};
-    GravityModel gravity_model{GravityModel::kNormalGravity};
-
-    double earth_rotation_rate_radps{7.2921151467e-5};
-    double constant_gravity_mps2{9.80665};
-    double semi_major_axis_m{6378137.0};
-    double eccentricity_squared{0.0066943799901413156};
-    double fallback_sphere_radius_m{6371000.0};
-};
+using EarthModelOptions = RuntimeConfig;
 
 struct EarthParameters {
     Eigen::Vector2d meridian_prime_vertical_radii_m{Eigen::Vector2d::Zero()};
