@@ -7,6 +7,7 @@
 - [Build](#build)
 - [API](#api)
 - [Earth switches](#earth-switches)
+- [YAML configuration](#yaml-configuration)
 - [Validation](#validation)
 - [References](#references)
 - [License](#license)
@@ -91,6 +92,26 @@ const inertial_core::NavState next = runner.step(imu);
 关闭 `enable_earth_rotation` 不会自动关闭重力。关闭全部旋转项仍保留重力，
 这是导航机械编排的 no-Earth 基线，不是自由落体。
 
+## YAML configuration
+
+逐项注释的默认配置文件位于 [`config/runtime.yaml`](config/runtime.yaml)。
+
+启用 YAML 加载目标：
+
+```bash
+cmake -S . -B build -G Ninja -DINERTIAL_CORE_BUILD_YAML_CONFIG=ON
+```
+
+```cpp
+#include "inertial_core/runtime_config_yaml.hpp"
+
+const inertial_core::RuntimeConfig config =
+    inertial_core::loadRuntimeConfigFile("config/runtime.yaml");
+```
+
+加载器支持 `runtime:` 根节点，也接受直接放在文档根节点下的同名字段。
+缺失字段保留 `RuntimeConfig` 默认值。
+
 ## Validation
 
 当前测试覆盖：
@@ -100,6 +121,7 @@ const inertial_core::NavState next = runner.step(imu);
 - no-Earth 常值重力自由落体和支撑静止；
 - 地球自转开启时理想静止 IMU 的姿态、速度和高度保持；
 - 水平常速运动的位置更新；
+- `config/runtime.yaml` 默认值、字段覆盖和非法重力模型；
 - 非法时间间隔拒绝。
 
 ## References

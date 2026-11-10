@@ -32,6 +32,8 @@
 `RuntimeConfig::enable_coning_sculling` 可关闭全部圆锥和划桨二阶修正。
 
 `RuntimeConfig` 与 `preintegration_core` 使用相同字段名和默认值。
+`runtime_config_yaml.hpp` 将 `config/runtime.yaml` 映射到同一个结构；YAML 缺失字段
+保留默认值，未知重力模型会抛出 `std::invalid_argument`。
 
 ## Mechanization sequence
 
